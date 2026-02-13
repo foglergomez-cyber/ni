@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>默契问答 - 给亲爱的刘老师</title>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #fff5f8, #ffcce6);
+      font-family: 'ZCOOL KuaiLe', sans-serif;
+    }
+    .back-btn {
+      position: fixed;
+      top: 20px; left: 20px;
+      padding: 8px 16px;
+      background: #ff6b9d;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      text-decoration: none;
+      z-index: 10;
+    }
+    .quiz-box {
+      background: rgba(255,255,255,0.9);
+      padding: 2rem;
+      border-radius: 24px;
+      max-width: 420px;
+      width: 90%;
+      border: 3px solid #ffb6c1;
+      box-shadow: 0 12px 40px rgba(255, 105, 180, 0.25);
+    }
+    h2 { color: #e91e63; margin-bottom: 1.5rem; text-align: center; }
+    .question { color: #c2185b; font-size: 1.2rem; margin-bottom: 1rem; }
+    .format-hint { color: #f48fb1; font-size: 0.85rem; margin-bottom: 0.5rem; }
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #ffcce6;
+      border-radius: 12px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #ff6b9d, #e91e63);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .hint { color: #e91e63; font-size: 1rem; margin-top: 0.5rem; font-weight: bold; }
+    .success-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+    .success-modal.show { display: flex; }
+    .success-box {
+      background: linear-gradient(145deg, #ffe4ec, #ffd6e0);
+      padding: 2rem;
+      border-radius: 24px;
+      text-align: center;
+    }
+    .success-box .emoji { font-size: 4rem; margin-bottom: 1rem; }
+    .success-box p { font-size: 1.3rem; color: #c2185b; }
+    @keyframes kissPop {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .kiss-anim .emoji { animation: kissPop 0.5s ease; }
+    @keyframes heartFall {
+      0% { transform: translateY(-20px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    .hearts-fall { position: fixed; inset: 0; pointer-events: none; z-index: 25; }
+    .hearts-fall span {
+      position: absolute;
+      font-size: 1.5rem;
+      animation: heartDrop 3s linear forwards;
+    }
+    @keyframes heartDrop {
+      0% { top: -30px; opacity: 1; }
+      100% { top: 100vh; opacity: 0.5; }
+    }
+    .howl-anim {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,240,245,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 25;
+      pointer-events: none;
+    }
+    .howl-anim.show { display: flex; }
+    .castle {
+      font-size: 6rem;
+      animation: castleFloat 2s ease-in-out infinite;
+    }
+    @keyframes castleFloat {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-20px) scale(1.05); }
+    }
+    .howl-text {
+      position: absolute;
+      bottom: 30%;
+      font-size: 1.5rem;
+      color: #c2185b;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-btn">← 返回</a>
+  <div class="quiz-box">
+    <h2>💕 默契问答 - 小咪姐姐的考验</h2>
+    <p class="question" id="question"></p>
+    <p class="format-hint" id="formatHint"></p>
+    <input type="text" id="answer" placeholder="输入答案..." />
+    <button id="submit">提交</button>
+    <p class="hint" id="hint"></p>
+  </div>
+
+  <div class="success-modal" id="successModal">
+    <div class="success-box" id="successBox">
+      <div class="emoji">💋</div>
+      <p>答对啦！么么哒～</p>
+    </div>
+  </div>
+
+  <div class="hearts-fall" id="heartsFall"></div>
+
+  <div class="howl-anim" id="howlAnim">
+    <div class="castle">🏰</div>
+    <p class="howl-text">哈尔的移动城堡 · 我们的约定</p>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        q: '我的生日是什么时候？',
+        format: '格式：x.x',
+        a: ['6.26', '6·26', '626', '6月26日', '6月26'],
+        wrong: '大笨蛋！再想想哦，这都回答不出来～',
+        correctType: 'kiss'
+      },
+      {
+        q: '小咪姐姐最喜欢的颜色是什么？',
+        format: '',
+        a: ['蓝色'],
+        wrong: '大笨蛋！',
+        correctType: 'hearts'
+      },
+      {
+        q: '小咪姐姐很喜欢的一部电影是什么？',
+        format: '',
+        a: ['哈尔的移动城堡', '哈尔的移动城', '哈尔移动城堡'],
+        wrong: '笨蛋，情人节一个人过吧～',
+        correctType: 'howl'
+      }
+    ];
+
+    let current = 0;
+    const qEl = document.getElementById('question');
+    const formatEl = document.getElementById('formatHint');
+    const aEl = document.getElementById('answer');
+    const hintEl = document.getElementById('hint');
+    const successModal = document.getElementById('successModal');
+    const successBox = document.getElementById('successBox');
+    const heartsFall = document.getElementById('heartsFall');
+    const howlAnim = document.getElementById('howlAnim');
+
+    function showQuestion() {
+      if (current >= questions.length) {
+        successBox.className = 'success-box kiss-anim';
+        successBox.innerHTML = '<div class="emoji">💋</div><p>全对啦！刘老师真厉害，么么哒～</p>';
+        successModal.classList.add('show');
+        return;
+      }
+      const q = questions[current];
+      qEl.textContent = q.q;
+      formatEl.textContent = q.format;
+      formatEl.style.display = q.format ? 'block' : 'none';
+      aEl.value = '';
+      hintEl.textContent = '';
+      aEl.focus();
+    }
+
+    function playKissAnimation() {
+      successBox.className = 'success-box kiss-anim';
+      successBox.innerHTML = '<div class="emoji">💋</div><p>答对啦！么么哒～</p>';
+      successModal.classList.add('show');
+      setTimeout(() => {
+        successModal.classList.remove('show');
+        current++;
+        showQuestion();
+      }, 1500);
+    }
+
+    function playHeartsAnimation() {
+      heartsFall.innerHTML = '';
+      for (let i = 0; i < 20; i++) {
+        const h = document.createElement('span');
+        h.textContent = ['❤️', '💕', '💗', '💖'][Math.floor(Math.random() * 4)];
+        h.style.left = Math.random() * 100 + '%';
+        h.style.animationDelay = Math.random() * 2 + 's';
+        heartsFall.appendChild(h);
+      }
+      setTimeout(() => {
+        heartsFall.innerHTML = '';
+        successBox.className = 'success-box';
+        successBox.innerHTML = '<div class="emoji">💕</div><p>答对啦！爱心送你～</p>';
+        successModal.classList.add('show');
+        setTimeout(() => {
+          successModal.classList.remove('show');
+          current++;
+          showQuestion();
+        }, 1500);
+      }, 1500);
+    }
+
+    function playHowlAnimation() {
+      howlAnim.classList.add('show');
+      setTimeout(() => {
+        howlAnim.classList.remove('show');
+        successBox.className = 'success-box';
+        successBox.innerHTML = '<div class="emoji">🏰</div><p>答对啦！哈尔的移动城堡，我们的浪漫～</p>';
+        successModal.classList.add('show');
+        setTimeout(() => {
+          successModal.classList.remove('show');
+          current++;
+          showQuestion();
+        }, 1500);
+      }, 2500);
+    }
+
+    document.getElementById('submit').addEventListener('click', () => {
+      const ans = aEl.value.trim();
+      const q = questions[current];
+      const correct = q.a.some(c => {
+        const a = ans.replace(/\s/g, '');
+        const b = c.replace(/\s/g, '');
+        return a === b || a.includes(b) || b.includes(a);
+      });
+
+      if (correct) {
+        if (q.correctType === 'kiss') playKissAnimation();
+        else if (q.correctType === 'hearts') playHeartsAnimation();
+        else if (q.correctType === 'howl') playHowlAnimation();
+      } else {
+        hintEl.textContent = q.wrong;
+      }
+    });
+
+    aEl.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('submit').click();
+    });
+
+    showQuestion();
+  </script>
+</body>
+</html>
