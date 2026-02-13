@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>迷宫寻信 - 给亲爱的刘老师</title>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #fff5f8, #ffcce6);
+      font-family: 'ZCOOL KuaiLe', sans-serif;
+    }
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      padding: 8px 16px;
+      background: #ff6b9d;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 1rem;
+      z-index: 10;
+      text-decoration: none;
+    }
+    h2 { color: #e91e63; margin-bottom: 1rem; }
+    #mazeCanvas {
+      border: 3px solid #ff9ec5;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 8px 30px rgba(255, 105, 180, 0.3);
+      cursor: pointer;
+      outline: none;
+    }
+    .letter-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+    .letter-modal.show { display: flex; }
+    .letter-box {
+      background: linear-gradient(145deg, #ffe4ec, #ffd6e0);
+      padding: 2rem;
+      border-radius: 20px;
+      max-width: 90%;
+      width: 400px;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 3px solid #ffb6c1;
+      box-shadow: 0 20px 60px rgba(233, 30, 99, 0.3);
+    }
+    .letter-box h3 { color: #c2185b; margin-bottom: 1rem; }
+    .letter-box p { color: #8e0038; line-height: 1.9; }
+    .letter-box button {
+      margin-top: 1rem;
+      padding: 10px 24px;
+      background: #ff6b9d;
+      border: none;
+      border-radius: 20px;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-btn">← 返回</a>
+  <h2>🐱 迷宫寻信 - 走到终点获取惊喜（给刘老师）</h2>
+  <canvas id="mazeCanvas" width="400" height="400" tabindex="0"></canvas>
+  <p style="margin-top:1rem;color:#e91e63;">先点击迷宫区域，再按方向键 ↑ ↓ ← → 控制移动</p>
+
+  <div class="letter-modal" id="letterModal">
+    <div class="letter-box">
+      <h3>💌 给刘老师的信</h3>
+      <p>恭喜你找到这封信！虽然我们相隔很远，但每一次的思念都像走过迷宫一样，曲折却终会到达你的心里。谢谢你愿意和我一起，情人节快乐，我的刘老师。❤️</p>
+      <button onclick="document.getElementById('letterModal').classList.remove('show')">关上信</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    const cellSize = 20;
+    const cols = 20, rows = 20;
+    let maze = [], player = { x: 1, y: 1 }, end = { x: cols - 2, y: rows - 2 };
+
+    function initMaze() {
+      maze = Array(rows).fill(null).map(() => Array(cols).fill(1));
+
+      function carve(y, x) {
+        maze[y][x] = 0;
+        const dirs = [[-2,0],[2,0],[0,-2],[0,2]].sort(() => Math.random() - 0.5);
+        for (const [dy, dx] of dirs) {
+          const ny = y + dy, nx = x + dx;
+          if (ny > 0 && ny < rows - 1 && nx > 0 && nx < cols - 1 && maze[ny][nx] === 1) {
+            maze[(y + ny) / 2][(x + nx) / 2] = 0;
+            carve(ny, nx);
+          }
+        }
+      }
+      carve(1, 1);
+      maze[1][1] = 0;
+      maze[rows - 2][cols - 2] = 0;
+      maze[rows - 3][cols - 2] = 0;
+      maze[rows - 2][cols - 3] = 0;
+    }
+
+    function draw() {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < rows; y++)
+        for (let x = 0; x < cols; x++) {
+          if (maze[y][x] === 1) {
+            ctx.fillStyle = '#ffcce6';
+            ctx.strokeStyle = '#ff9ec5';
+            ctx.lineWidth = 1;
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
+        }
+      ctx.fillStyle = '#4caf50';
+      ctx.beginPath();
+      ctx.arc((end.x + 0.5) * cellSize, (end.y + 0.5) * cellSize, cellSize / 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e91e63';
+      ctx.beginPath();
+      ctx.arc((player.x + 0.5) * cellSize, (player.y + 0.5) * cellSize, cellSize / 3 - 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      let nx = player.x, ny = player.y;
+      if (e.key === 'ArrowUp') ny--; else if (e.key === 'ArrowDown') ny++;
+      else if (e.key === 'ArrowLeft') nx--; else if (e.key === 'ArrowRight') nx++;
+      else return;
+      e.preventDefault();
+      if (ny >= 0 && ny < rows && nx >= 0 && nx < cols && maze[ny][nx] === 0) {
+        player.x = nx; player.y = ny;
+        if (player.x === end.x && player.y === end.y)
+          document.getElementById('letterModal').classList.add('show');
+        draw();
+      }
+    });
+
+    canvas.focus();
+    canvas.addEventListener('click', () => canvas.focus());
+    initMaze();
+    draw();
+  </script>
+</body>
+</html>
